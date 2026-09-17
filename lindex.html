@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>แบบทดสอบทำนายดวง - Witchyu</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="theme-loader.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Prompt', sans-serif; }
+        /* พื้นหลังเต็มจอทุกอัตราส่วน (position:fixed แยกเลเยอร์จากความสูงเนื้อหา)
+           ค่าเริ่มต้น = ธีมเดิม (ไล่สีม่วง-ทอง) เมื่อเลือกธีมเทศกาลจากหน้า admin
+           --theme-bg-layer จะถูกตั้งเป็นไฟล์ภาพประกอบของธีมนั้นแยกต่างหาก (bg-halloween.svg ฯลฯ) */
+        .theme-bg { background-color: var(--theme-bg-color, #0a0414); position: relative; }
+        .theme-bg::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            pointer-events: none;
+            background-color: var(--theme-bg-color, #0a0414);
+            background-image: var(--theme-bg-layer,
+                linear-gradient(rgba(8, 4, 20, 0.55), rgba(8, 4, 20, 0.55)), url('bg-mystic.svg'));
+            background-repeat: no-repeat;
+            background-position: center center;
+            background-size: cover;
+        }
+        .gold-gradient-text {
+            background: var(--theme-gold-gradient, linear-gradient(to right, #fef08a, #fde047, #ca8a04));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .gold-button {
+            background: var(--theme-button-gradient, linear-gradient(to right, #ca8a04, #eab308, #ca8a04));
+            color: var(--theme-button-text, #1a0b2e);
+            font-weight: 700;
+            transition: all 0.3s ease;
+        }
+        .gold-button:hover {
+            background: linear-gradient(to right, #eab308, #fde047, #eab308);
+            box-shadow: 0 0 20px rgba(234, 179, 8, 0.4);
+        }
+        
+        /* สไตล์ภาพวาดแวนโก๊ะโทนม่วง-น้ำเงินหมุนวน + ขอบทองหรูหรา */
+        .vangogh-card {
+            background: radial-gradient(circle at 50% 30%, rgba(75, 30, 110, 0.9) 0%, rgba(20, 10, 40, 0.98) 70%, rgba(10, 5, 20, 1) 100%);
+            border: 2px solid rgba(234, 198, 92, 0.6);
+            box-shadow: 0 0 40px rgba(80, 20, 120, 0.5), inset 0 0 25px rgba(234, 198, 92, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .vangogh-card::before {
+            content: "";
+            position: absolute;
+            top: -50%; left: -50%; width: 200%; height: 200%;
+            background: radial-gradient(ellipse at center, rgba(120, 70, 180, 0.15) 0%, transparent 60%),
+                        repeating-radial-gradient(circle at 40% 40%, transparent, rgba(234, 198, 92, 0.05) 40px, transparent 80px);
+            animation: swirlRotate 30s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes swirlRotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .item-box {
+            background: rgba(35, 12, 55, 0.7);
+            border: 1px solid rgba(234, 198, 92, 0.4);
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(5px);
+        }
+
+        .item-box:hover {
+            background: rgba(65, 22, 100, 0.9);
+            border-color: rgba(234, 198, 92, 1);
+            box-shadow: 0 0 25px rgba(234, 198, 92, 0.4);
+            transform: translateY(-3px);
+        }
+        
+                .vangogh-card {
+            background: var(--theme-card-bg, radial-gradient(circle at 50% 30%, rgba(75, 30, 110, 0.9) 0%, rgba(20, 10, 40, 0.98) 70%, rgba(10, 5, 20, 1) 100%)) !important;
+            border: 2px solid var(--theme-border-base, rgba(234, 198, 92, 0.6)) !important;
+            box-shadow: 0 0 40px rgba(80, 20, 120, 0.5), inset 0 0 25px rgba(234, 198, 92, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .item-box {
+            background: var(--theme-card-bg, rgba(35, 12, 55, 0.7)) !important;
+            border: 1px solid var(--theme-border-base, rgba(234, 198, 92, 0.4)) !important;
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(5px);
+        }
+     
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; transform: scale(0.85); }
+            50% { opacity: 1; transform: scale(1.15); filter: drop-shadow(0 0 10px rgba(234, 198, 92, 0.9)); }
+        }
+
+        .sparkle-1 { animation: twinkle 4s infinite ease-in-out; }
+        .sparkle-2 { animation: twinkle 5.5s infinite ease-in-out 1s; }
+        .sparkle-3 { animation: twinkle 7s infinite ease-in-out 2s; }
+            /* ============ Theme color overrides ============
+           ให้กล่อง/นาว/เส้นขอบ/ตัวหนังสือเน้นสี ทุกจุดในหน้าเปลี่ยนสีตามธีมเทศกาลด้วย
+           ไม่ใช่แค่พื้นหลังกับปุ่มทอง ใช้ color-mix() ผสมความโปร่งใสจากสีธีมเดียวกัน จึงตัดกับ
+           พื้นหลังของแต่ละธีมชัดเจน ไม่ใช่สีม่วงเดิม (#120521/#1a0b2e) ค้างอยู่เวลาเปลี่ยนธีม
+           ไม่ได้เลือกธีม (ธีมเดิม) ตัวแปรจะไม่ถูกตั้งค่า จึง fallback เป็นสีเดิมทุกจุดเป๊ะๆ */
+        .gold-text { color: var(--theme-accent-text, #fde047) !important; }
+        .text-yellow-200 { color: var(--theme-accent-text, #fef08a) !important; }
+        .text-yellow-300 { color: var(--theme-accent-text, #fde047) !important; }
+        .text-yellow-400 { color: var(--theme-accent-text-strong, #facc15) !important; }
+
+        .bg-\[\#120521\] { background-color: var(--theme-card-bg, #120521) !important; }
+        .bg-\[\#120521\]\/60 { background-color: color-mix(in srgb, var(--theme-card-bg, #120521) 60%, transparent) !important; }
+        .bg-\[\#120521\]\/70 { background-color: color-mix(in srgb, var(--theme-card-bg, #120521) 70%, transparent) !important; }
+        .bg-\[\#120521\]\/90 { background-color: color-mix(in srgb, var(--theme-card-bg, #120521) 90%, transparent) !important; }
+        .bg-\[\#0d0420\] { background-color: var(--theme-card-bg, #0d0420) !important; }
+
+        .bg-\[\#1a0b2e\] { background-color: var(--theme-input-bg, #1a0b2e) !important; }
+        .bg-\[\#1a0b2e\]\/80 { background-color: color-mix(in srgb, var(--theme-input-bg, #1a0b2e) 80%, transparent) !important; }
+
+        .bg-\[\#0d041a\] { background-color: var(--theme-deep-bg, #0d041a) !important; }
+        .bg-\[\#0d041a\]\/85 { background-color: color-mix(in srgb, var(--theme-deep-bg, #0d041a) 85%, transparent) !important; }
+
+        .border-yellow-600\/10 { border-color: color-mix(in srgb, var(--theme-border-base, #ca8a04) 10%, transparent) !important; }
+        .border-yellow-600\/20 { border-color: color-mix(in srgb, var(--theme-border-base, #ca8a04) 20%, transparent) !important; }
+        .border-yellow-600\/30 { border-color: color-mix(in srgb, var(--theme-border-base, #ca8a04) 30%, transparent) !important; }
+        .border-yellow-600\/40 { border-color: color-mix(in srgb, var(--theme-border-base, #ca8a04) 40%, transparent) !important; }
+        .border-yellow-500\/50 { border-color: var(--theme-border-base, #eab308) !important; }
+
+        .bg-slate-800 { background-color: var(--theme-alt-bg, #1e293b) !important; }
+        .bg-slate-900\/80 { background-color: color-mix(in srgb, var(--theme-alt-bg-deep, #0f172a) 80%, transparent) !important; }
+        .bg-slate-950 { background-color: var(--theme-alt-bg-deep, #020617) !important; }
+
+        /* ============ ปุ่มแฮมเบอร์เกอร์ (แปลงเป็นกากบาทตอนเปิดเมนู) ============ */
+        .hamburger { display: flex; flex-direction: column; justify-content: space-between; width: 20px; height: 16px; }
+        .hamburger span { display: block; height: 2px; width: 100%; background: currentColor; border-radius: 9999px; transition: transform 0.3s ease, opacity 0.2s ease; transform-origin: center; }
+        #menu-btn.menu-open .hamburger span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+        #menu-btn.menu-open .hamburger span:nth-child(2) { opacity: 0; }
+        #menu-btn.menu-open .hamburger span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+        /* ============ เมนูมือถือแบบเลื่อนเข้าจากด้านขวา (Drawer) ============ */
+        /* หมายเหตุ: หน้านี้ใช้ Tailwind v4 (@tailwindcss/browser@4) ซึ่งต่างจาก index.html ที่ใช้ Tailwind v3
+           ปุ่ม translate-x-full ใน v4 จะคอมไพล์เป็น CSS property "translate" โดยตรง (ไม่ใช่ transform: translateX())
+           เหมือน v3 อีกต่อไป จึงต้องใส่ transition ให้ครอบคลุมทั้ง translate และ transform ไว้ด้วยกัน
+           เพื่อให้เลื่อนออกมาเป็นอนิเมชั่นลื่นไหลเหมือนหน้า index.html */
+        #mobile-menu { transition: transform 0.3s ease, translate 0.3s ease; }
+        #mobile-menu-backdrop { transition: opacity 0.3s ease; }
+
+        /* ============ อนิเมชันตอนแตะปุ่ม (ใช้กับปุ่ม/ลิงก์ทุกอันในหน้านี้) ============ */
+        button, a, input[type="submit"], input[type="button"], [role="button"] {
+            transition: transform 0.15s ease, filter 0.15s ease, opacity 0.15s ease;
+        }
+        button:active, a:active, input[type="submit"]:active, input[type="button"]:active, [role="button"]:active {
+            transform: scale(0.95);
+            filter: brightness(0.92);
+        }
+    </style>
+</head>
+<body class="theme-bg text-slate-100 min-h-screen relative overflow-x-hidden">
+    
+    <!-- Navbar เหมือนกับหน้า index.html ทุกประการ -->
+           <nav class="bg-[#120521]/90 border-b border-yellow-600/35 sticky top-0 left-0 w-full z-50 backdrop-blur-md">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+
+            <a href="index.html" class="flex items-center space-x-2">
+                <img src="logo.JPG" alt="Logo" class="w-10 h-10 rounded-full object-cover border border-yellow-500/50 drop-shadow-[0_0_8px_rgba(234,179,8,0.5)]">
+                <span class="text-xl font-bold gold-gradient-text tracking-wider">Witchyu</span>
+            </a>
+
+            <!-- เมนู Desktop -->
+            <div class="hidden items-center space-x-3">
+                <a href="home.html" class="px-4 py-2 rounded-xl gold-button text-sm shadow-md transition">หน้าร้าน</a>
+                <a href="index.html" class="px-4 py-2 rounded-xl bg-slate-900/80 text-yellow-300 border border-yellow-600/30 hover:bg-slate-800 text-sm font-medium transition">จองคิวดูดวง</a>
+                <a href="lindex.html" class="px-4 py-2 rounded-xl bg-slate-900/80 text-yellow-300 border border-yellow-600/30 hover:bg-slate-800 text-sm font-medium transition">แบบทดสอบทำนายดวง</a>
+                <a href="https://www.instagram.com/witchyu_2006?igsi=MTY1dzFwYTZxcHg2Ng==" target="_blank" class="p-2 rounded-xl bg-slate-900/80 border border-yellow-600/30 text-yellow-400 hover:bg-slate-800 transition flex items-center justify-center shadow-md" title="Instagram">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                    </svg>
+                </a>
+            </div>
+
+            <!-- ปุ่มเปิดเมนูมือถือ -->
+            <div class="flex items-center space-x-2">
+                <a href="https://www.instagram.com/witchyu_2006?igsi=MTY1dzFwYTZxcHg2Ng==" target="_blank" class="p-2 rounded-xl bg-slate-900/80 border border-yellow-600/30 text-yellow-400 hover:bg-slate-800 transition flex items-center justify-center shadow-md" title="Instagram">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                    </svg>
+                </a>
+                <button onclick="toggleMobileMenu()" id="menu-btn" class="text-yellow-400 focus:outline-none p-2 rounded-xl bg-slate-900/80 border border-yellow-600/30" aria-label="เปิดเมนู">
+                    <span class="hamburger">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </span>
+                </button>
+            </div>
+
+        </div>
+    </nav>
+
+    <!-- ฉากหลังมืดเมื่อเปิดเมนูมือถือ (อยู่นอก nav เพื่อไม่ให้ backdrop-blur ของ nav ครอบกล่อง fixed) -->
+    <div id="mobile-menu-backdrop" onclick="toggleMobileMenu()" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 opacity-0 pointer-events-none"></div>
+
+    <!-- Dropdown Menu มือถือ (เลื่อนเข้าจากด้านขวา ตรงปุ่มเมนู ต่ำกว่า nav เพื่อให้ nav ลอยบนสุดเสมอ) -->
+    <div id="mobile-menu" class="fixed top-0 right-0 h-full flex flex-col w-fit max-w-[85%] bg-[#120521] border-l border-yellow-600/30 px-4 pt-20 pb-4 space-y-2 shadow-2xl z-[45] translate-x-full overflow-y-auto">
+        <a href="home.html" class="block w-full text-right whitespace-nowrap px-4 py-2.5 rounded-xl bg-slate-950 text-yellow-300 border border-yellow-600/30 text-sm font-medium transition">หน้าร้าน</a>
+        <a href="index.html" class="block w-full text-right whitespace-nowrap px-4 py-2.5 rounded-xl bg-slate-950 text-yellow-300 border border-yellow-600/30 text-sm font-medium transition">จองคิวดูดวง</a>
+        <a href="lindex.html" class="block w-full text-right whitespace-nowrap px-4 py-2.5 rounded-xl gold-button text-sm shadow-md transition">แบบทดสอบทำนายดวง</a>
+    </div>
+
+
+
+    <!-- ประกายดาววิบวับรอบจอ -->
+    <div class="absolute top-20 left-10 text-amber-300 text-2xl sparkle-1 pointer-events-none">✨</div>
+    <div class="absolute top-1/3 left-6 text-yellow-200 text-lg sparkle-2 pointer-events-none">⭐</div>
+    <div class="absolute bottom-1/3 left-12 text-amber-200 text-xl sparkle-3 pointer-events-none">✨</div>
+    <div class="absolute bottom-16 left-1/4 text-yellow-300 text-base sparkle-1 pointer-events-none">⭐</div>
+
+    <div class="absolute top-24 right-10 text-amber-300 text-xl sparkle-2 pointer-events-none">✨</div>
+    <div class="absolute top-1/3 right-8 text-yellow-200 text-2xl sparkle-3 pointer-events-none">⭐</div>
+    <div class="absolute bottom-1/4 right-14 text-amber-200 text-lg sparkle-1 pointer-events-none">✨</div>
+    <div class="absolute top-1/2 right-1/4 text-yellow-300 text-sm sparkle-2 pointer-events-none">⭐</div>
+
+    <!-- ส่วนเนื้อหาหลัก (จัดกึ่งกลางสวยงาม) -->
+    <main class="max-w-2xl w-full mx-auto p-4 flex items-center justify-center min-h-[calc(100vh-80px)]">
+        <div class="max-w-2xl w-full vangogh-card rounded-[2.5rem] p-6 md:p-8 text-center relative z-10 my-auto">
+            
+            <!-- Header -->
+            <div class="mb-6 relative z-10">
+                <h1 class="text-3xl md:text-4xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-300 drop-shadow-[0_2px_12px_rgba(234,198,92,0.5)]">
+                    แบบทดสอบทำนายดวง
+                </h1>
+                <p class="text-purple-200/80 text-sm md:text-base font-light">แบบทดสอบนี้จัดทำขึ้นโดยทีมงานของทาง Witchyu เพื่อเป็นส่วนหนึ่งในการช่วยค้นหาตัวตน และ ลักษณะนิสัย ผ่านคำตอบที่คุณเลือก
+เมื่อทำแบบทดสอบเสร็จสิ้น คุณจะได้รับการ์ดคำทำนายที่สะท้อนตัวตนและลักษณะเฉพาะของคุณ แบบทดสอบนี้จัดทำขึ้นเพื่อความบันเทิงเท่านั้น! ขอบคุณที่เข้ามาร่วมค้นหาตัวตนไปกับเรา 🤍
+                </p>
+                <div class="w-32 h-[1px] bg-gradient-to-r from-transparent via-amber-400/70 to-transparent mx-auto mt-3"></div>
+            </div>
+
+            <!-- รายการ 6 หัวข้อ -->
+            <div class="grid grid-cols-2 gap-3 max-w-xl mx-auto relative z-10">
+                <a href="finance.html" class="item-box p-3 md:p-4 rounded-2xl flex flex-col items-center justify-center text-center group">
+                    <div class="text-2xl md:text-3xl mb-1 group-hover:scale-110 transition"></div>
+                    <h3 class="font-semibold text-amber-200 group-hover:text-amber-100 text-sm md:text-base">การเงิน & โชคลาภ</h3>
+                    <p class="text-[11px] text-amber-300/60 mt-0.5 hidden sm:block">กระแสทรัพย์และการลงทุน</p>
+                </a>
+                <a href="career.html" class="item-box p-3 md:p-4 rounded-2xl flex flex-col items-center justify-center text-center group">
+                    <div class="text-2xl md:text-3xl mb-1 group-hover:scale-110 transition"></div>
+                    <h3 class="font-semibold text-amber-200 group-hover:text-amber-100 text-sm md:text-base">การงาน & ธุรกิจ</h3>
+                    <p class="text-[11px] text-amber-300/60 mt-0.5 hidden sm:block">ความก้าวหน้าและความสำเร็จ</p>
+                </a>
+                <a href="health.html" class="item-box p-3 md:p-4 rounded-2xl flex flex-col items-center justify-center text-center group">
+                    <div class="text-2xl md:text-3xl mb-1 group-hover:scale-110 transition"></div>
+                    <h3 class="font-semibold text-amber-200 group-hover:text-amber-100 text-sm md:text-base">สุขภาพ & พลังงาน</h3>
+                    <p class="text-[11px] text-amber-300/60 mt-0.5 hidden sm:block">สมดุลกายและจิตใจ</p>
+                </a>
+                <a href="luck.html" class="item-box p-3 md:p-4 rounded-2xl flex flex-col items-center justify-center text-center group">
+                    <div class="text-2xl md:text-3xl mb-1 group-hover:scale-110 transition"></div>
+                    <h3 class="font-semibold text-amber-200 group-hover:text-amber-100 text-sm md:text-base">โชคลาภวาสนา</h3>
+                    <p class="text-[11px] text-amber-300/60 mt-0.5 hidden sm:block">ดวงดาวและสิ่งศักดิ์สิทธิ์</p>
+                </a>
+                <a href="love.html" class="item-box p-3 md:p-4 rounded-2xl flex flex-col items-center justify-center text-center group">
+                    <div class="text-2xl md:text-3xl mb-1 group-hover:scale-110 transition"></div>
+                    <h3 class="font-semibold text-amber-200 group-hover:text-amber-100 text-sm md:text-base">ความรัก & ความสัมพันธ์</h3>
+                    <p class="text-[11px] text-amber-300/60 mt-0.5 hidden sm:block">เนื้อคู่และพลังงานหัวใจ</p>
+                </a>
+                <a href="travel.html" class="item-box p-3 md:p-4 rounded-2xl flex flex-col items-center justify-center text-center group">
+                    <div class="text-2xl md:text-3xl mb-1 group-hover:scale-110 transition"></div>
+                    <h3 class="font-semibold text-amber-200 group-hover:text-amber-100 text-sm md:text-base">การเดินทาง & การย้าย</h3>
+                    <p class="text-[11px] text-amber-300/60 mt-0.5 hidden sm:block">ทิศทางและการโยกย้าย</p>
+                </a>
+            </div>
+
+            <!-- Footer ลายเส้นประดับล่าง -->
+            <div class="mt-6 text-amber-300/70 text-xs tracking-widest sparkle-3 relative z-10">
+                ✦ ── ✧ ── 🌙 ── ✧ ── ✦
+            </div>
+            <p class="text-purple-200/80 text-sm md:text-base font-light mt-2">
+                By: Witchyu
+            </p>
+        </div>
+    </main>
+
+    <script>
+        // ฟังก์ชันเปิด-ปิดเมนูมือถือ (เลื่อนเข้า/ออกจากด้านขวา + ปุ่มแฮมเบอร์เกอร์แปลงเป็นกากบาท)
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            const backdrop = document.getElementById('mobile-menu-backdrop');
+            const btn = document.getElementById('menu-btn');
+            const isOpen = btn.classList.contains('menu-open');
+
+            if (isOpen) {
+                menu.classList.add('translate-x-full');
+                backdrop.classList.add('opacity-0', 'pointer-events-none');
+                btn.classList.remove('menu-open');
+                document.body.classList.remove('overflow-hidden');
+            } else {
+                menu.classList.remove('translate-x-full');
+                backdrop.classList.remove('opacity-0', 'pointer-events-none');
+                btn.classList.add('menu-open');
+                document.body.classList.add('overflow-hidden');
+            }
+        }
+    </script>
+</body>
+</html>
+
