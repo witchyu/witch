@@ -9,6 +9,10 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="Witch yu">
     <meta name="theme-color" content="#1a0b2e">
+    <!-- ปิดการตรวจจับวันที่/เบอร์โทร/อีเมลอัตโนมัติของ Safari/เบราว์เซอร์มือถือ
+         สาเหตุของกล่องขาวๆ ที่โผล่ทับช่องวันที่: ข้อความบนปุ่มวันที่เป็นรูปแบบ "2026-09-18"
+         ซึ่งเบราว์เซอร์มือถือบางตัวมองว่าเป็นวันที่แล้วแปะป้าย/บับเบิลแปลภาษาให้เองอัตโนมัติ -->
+    <meta name="format-detection" content="date=no, telephone=no, address=no, email=no">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-config.js"></script>
@@ -150,10 +154,13 @@
             position: relative;
         }
 
-        /* ตกแต่ง Flatpickr ให้เข้ากับธีมร้านดูดวง */
+        /* ตกแต่ง Flatpickr ให้เข้ากับธีมร้านดูดวง
+           ใช้ตัวแปร --theme-* ตัวเดียวกับที่ theme-loader.js ตั้งให้ทั้งเว็บ (ค่า fallback ตัวที่สอง
+           ใน var() คือสีม่วง-ทองเดิม) ปฏิทินจะได้เปลี่ยนสีตามธีมที่ร้านเลือกใช้งานอยู่โดยอัตโนมัติ
+           แทนที่จะค้างเป็นม่วง-ทองตลอดไม่ว่าเว็บจะใช้ธีมไหนอยู่ก็ตาม */
         .flatpickr-calendar {
-            background: #120521 !important;
-            border: 1px solid rgba(234, 179, 8, 0.4) !important;
+            background: var(--theme-card-bg, #120521) !important;
+            border: 1px solid var(--theme-border-base, rgba(234, 179, 8, 0.4)) !important;
             border-radius: 1.5rem !important;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6) !important;
             color: #f8fafc !important;
@@ -164,19 +171,19 @@
         }
         .flatpickr-months .flatpickr-month {
             background: transparent !important;
-            color: #fde047 !important;
-            fill: #fde047 !important;
+            color: var(--theme-accent-text-strong, #fde047) !important;
+            fill: var(--theme-accent-text-strong, #fde047) !important;
         }
         .flatpickr-current-month .flatpickr-monthDropdown-months,
         .flatpickr-current-month input.cur-year {
-            color: #fde047 !important;
+            color: var(--theme-accent-text-strong, #fde047) !important;
             font-weight: 600;
         }
         .flatpickr-weekdays {
             background: transparent !important;
         }
         span.flatpickr-weekday {
-            color: #ca8a04 !important;
+            color: var(--theme-accent-text, #ca8a04) !important;
             font-weight: 600;
         }
         .flatpickr-day {
@@ -185,18 +192,18 @@
             border: 1px solid transparent;
         }
         .flatpickr-day.today {
-            border-color: #eab308 !important;
+            border-color: var(--theme-border-base, #eab308) !important;
             background: transparent !important;
-            color: #fde047 !important;
+            color: var(--theme-accent-text-strong, #fde047) !important;
         }
         .flatpickr-day.selected, .flatpickr-day.selected:hover {
-            background: linear-gradient(to right, #ca8a04, #eab308) !important;
-            color: #1a0b2e !important;
+            background: var(--theme-gold-gradient, linear-gradient(to right, #ca8a04, #eab308)) !important;
+            color: var(--theme-button-text, #1a0b2e) !important;
             font-weight: bold;
             border: none !important;
         }
         .flatpickr-day:hover {
-            background: rgba(234, 179, 8, 0.2) !important;
+            background: rgba(255, 255, 255, 0.1) !important;
         }
         .flatpickr-day.flatpickr-disabled, .flatpickr-day.flatpickr-disabled:hover {
             color: #475569 !important;
@@ -204,7 +211,7 @@
             border: none !important;
         }
         .flatpickr-arrow svg {
-            fill: #fde047 !important;
+            fill: var(--theme-accent-text-strong, #fde047) !important;
         }
 
         /* ===== ตกแต่งธีมเวทมนตร์ อ้างอิงจากภาพพระจันทร์-ดวงดาวสีทองบนพื้นม่วง ===== */
@@ -1047,6 +1054,16 @@
     let settings = {};
     let datePicker;
 
+    // แสดงผลบนปุ่มเป็นวันที่แบบไทย (พ.ศ.) แทนรูปแบบ "2026-09-18" เดิม
+    // เหตุผลอีกอย่าง: ข้อความรูปแบบ "YYYY-MM-DD" ตรงกับที่ Safari/เบราว์เซอร์มือถือมองว่าเป็น
+    // วันที่แล้วแปะกล่องคำแปล/ลิงก์ให้เองอัตโนมัติ (กล่องขาวๆ ที่เจอ) พอเปลี่ยนข้อความไม่ให้เป็น
+    // รูปแบบนั้นแล้ว ก็ไม่มีอะไรให้เบราว์เซอร์ไปตรวจจับต่อ (ใช้คู่กับ meta format-detection ด้านบน)
+    // ค่าจริงที่ใช้คำนวณ/ส่งข้อมูลทุกที่ยังเป็น "book-date".value รูปแบบ Y-m-d เดิมทุกประการ
+    const THAI_MONTHS_SHORT = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+    function formatThaiDateLabel(date) {
+        return date.getDate() + ' ' + THAI_MONTHS_SHORT[date.getMonth()] + ' ' + (date.getFullYear() + 543);
+    }
+
     window.addEventListener('DOMContentLoaded', () => {
         const bookDateBtn = document.getElementById('book-date-btn');
 
@@ -1055,17 +1072,19 @@
             dateFormat: "Y-m-d",
             defaultDate: "today",
             minDate: "today",
-            maxDate: new Date().fp_incr(7),
+            maxDate: new Date().fp_incr(7), // จองล่วงหน้าได้สูงสุด 7 วัน
             clickOpens: false,          // ตัว input ถูกซ่อนไว้ เปิดปฏิทินผ่านปุ่มด้านล่างแทน
             positionElement: bookDateBtn, // ให้ปฏิทินโผล่ใต้ปุ่ม ไม่ใช่ใต้ input ที่ซ่อนอยู่
             onChange: function(selectedDates, dateStr, instance) {
-                bookDateBtn.textContent = dateStr;
+                bookDateBtn.textContent = formatThaiDateLabel(selectedDates[0]);
                 updateAvailableTimes();
             }
         });
 
         // ตั้งข้อความบนปุ่มให้ตรงกับค่า defaultDate ที่ flatpickr ตั้งไว้ตอนเริ่มต้น
-        bookDateBtn.textContent = datePicker.input.value || 'เลือกวันที่จอง';
+        bookDateBtn.textContent = datePicker.selectedDates[0]
+            ? formatThaiDateLabel(datePicker.selectedDates[0])
+            : 'เลือกวันที่จอง';
 
         bookDateBtn.addEventListener('click', () => datePicker.open());
 
@@ -1127,6 +1146,11 @@
             closedBanner.classList.remove('hidden');
         }
         document.getElementById('phone-package-section').style.display = settings.is_phone_allowed ? "block" : "none";
+        // ทำวันที่ที่ร้านปิดรับจอง (settings.disabled_dates) ให้จางในปฏิทินทันที
+        // ไม่ต้องรอให้ลูกค้ากดเลือกก่อนถึงจะรู้ว่าวันนั้นจองไม่ได้เหมือนเดิม
+        if (datePicker) {
+            datePicker.set('disable', settings.disabled_dates || []);
+        }
         updateAvailableTimes();
     }
 
