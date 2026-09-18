@@ -26,7 +26,7 @@
         html.no-pinch-zoom {
             touch-action: pan-x pan-y;
         }
-        #book-date,
+        #book-date-btn,
         #book-time {
             -webkit-appearance: none;
             -moz-appearance: none;
@@ -43,15 +43,17 @@
             -webkit-text-size-adjust: 100%;
             text-size-adjust: 100%;
         }
-        /* #book-date คือ input ที่ flatpickr เข้าไปครอบ (readonly โดย default ของ flatpickr)
-           เบราว์เซอร์/เว็บวิวบางตัว (เช่น เว็บวิวในแอปแชทบางแอปบนมือถือ หรือเบราว์เซอร์บางยี่ห้อ)
-           จะไม่สนใจ -webkit-appearance:none แล้วดึงสไตล์เนทีฟของช่อง input ที่เป็น readonly มาใช้เอง
-           (ตัวหนังสือใหญ่ขึ้น กล่องสูงขึ้น/ยืดออก) จึงต้องล็อกความสูง/line-height/ขนาดตัวอักษรตายตัว
-           แทนที่จะปล่อยให้เบราว์เซอร์คำนวณเอง ปัญหานี้จะไม่กระทบ #book-time เพราะเป็น <select>
-           ที่ถูกล็อกด้วยกติกาเดียวกันอยู่แล้วด้านบน */
-        #book-date {
+        /* เดิมช่องวันที่เป็น <input readonly> ให้ flatpickr ครอบ ปัญหาคือเบราว์เซอร์/เว็บวิวบางตัว
+           (เว็บวิวในแอปมือถือบางแอป, เบราว์เซอร์บางยี่ห้อ) จะดึงสไตล์เนทีฟของ input ที่เป็น readonly
+           มาใช้เองโดยไม่สนใจ CSS ที่ตั้งไว้เลย (ตัวหนังสือใหญ่ขึ้น กล่องสูงยืดออก) แก้ไม่หายสักที
+           เพราะควบคุมจาก CSS ฝั่งเราไม่ได้ 100% จึงเปลี่ยนมาใช้ <button> แสดงผลแทน (ค่าจริงเก็บไว้ใน
+           input type="hidden" อีกตัวที่มองไม่เห็นเลย ให้ flatpickr ยังทำงานกับมันเหมือนเดิมทุกอย่าง)
+           <button> ไม่มีสไตล์เนทีฟแบบ "readonly" ให้เบราว์เซอร์ไหนแอบดึงไปใช้ได้ จึงหน้าตาเหมือนกัน
+           แน่นอน 100% ทุกเบราว์เซอร์/ทุกอุปกรณ์ */
+        #book-date-btn {
             text-align: left;
-            caret-color: transparent;
+            font-family: inherit;
+            color: inherit;
             cursor: pointer;
         }
         /* #book-time เป็น <select> ปกติของเบราว์เซอร์ ถ้าไม่ปิด appearance เอาไว้
@@ -1006,7 +1008,8 @@
                     <div class="space-y-4">
                         <div class="bg-[#120521] border border-yellow-600/40 rounded-2xl p-4">
                             <label class="block text-xs text-yellow-400 mb-1">วันที่</label>
-                            <input type="text" id="book-date" placeholder="เลือกวันที่จอง" readonly autocomplete="off" inputmode="none" class="w-full bg-[#1a0b2e] border border-yellow-600/40 rounded-xl px-4 py-3 text-white text-sm">
+                            <button type="button" id="book-date-btn" class="w-full bg-[#1a0b2e] border border-yellow-600/40 rounded-xl px-4 py-3 text-white text-sm">เลือกวันที่จอง</button>
+                            <input type="hidden" id="book-date">
                             <p id="date-warning" class="text-xs text-red-400 hidden mt-1"> ⚠️ วันนี้ร้านปิดรับจอง</p>
                         </div>
                         <div class="bg-[#120521] border border-yellow-600/40 rounded-2xl p-4">
@@ -1045,16 +1048,26 @@
     let datePicker;
 
     window.addEventListener('DOMContentLoaded', () => {
+        const bookDateBtn = document.getElementById('book-date-btn');
+
         datePicker = flatpickr("#book-date", {
             locale: "th",
             dateFormat: "Y-m-d",
             defaultDate: "today",
             minDate: "today",
             maxDate: new Date().fp_incr(7),
+            clickOpens: false,          // ตัว input ถูกซ่อนไว้ เปิดปฏิทินผ่านปุ่มด้านล่างแทน
+            positionElement: bookDateBtn, // ให้ปฏิทินโผล่ใต้ปุ่ม ไม่ใช่ใต้ input ที่ซ่อนอยู่
             onChange: function(selectedDates, dateStr, instance) {
+                bookDateBtn.textContent = dateStr;
                 updateAvailableTimes();
             }
         });
+
+        // ตั้งข้อความบนปุ่มให้ตรงกับค่า defaultDate ที่ flatpickr ตั้งไว้ตอนเริ่มต้น
+        bookDateBtn.textContent = datePicker.input.value || 'เลือกวันที่จอง';
+
+        bookDateBtn.addEventListener('click', () => datePicker.open());
 
         loadSavedClientInfo();
         fetchData();
